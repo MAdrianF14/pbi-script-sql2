@@ -1,0 +1,79 @@
+Proyek Database SQL: Perpustakaan Digital
+Repositori ini berisi script SQL lengkap (perpustakaan_digital.sql) yang digunakan untuk membangun skema dan fungsionalitas database Sistem Informasi Perpustakaan Digital. 
+Skrip ini mencakup DDL, DML, DCL, dan Advanced SQL Objects.
+
+1. Tujuan dan Model RelasiDatabase perpustakaan_digital dirancang untuk mengelola proses peminjaman buku.
+Entitas Utama:
+Anggota: Data identitas peminjam.
+Buku: Menyimpan katalog dan stok buku.
+Peminjaman: Mencatat semua transaksi pinjam-meminjam.
+
+Relasi Kunci:
+Anggota, Peminjaman: One-to-Many
+Buku, Peminjaman: One-to-Many
+
+2. Struktur Data UtamaBerikut adalah deskripsi kolom kunci untuk setiap entitas utama:
+Anggota:Primary Key (PK): id_anggota
+Kolom: nama, alamat, nomor_telepon, email, tanggal_daftar.
+Buku:Primary Key (PK): isbn
+Kolom: judul, penulis, penerbit, tahun_terbit, stok.
+Peminjaman:Primary Key (PK): id_peminjaman
+Foreign Key (FK): id_anggota (Menghubungkan ke Anggota)
+Foreign Key (FK): isbn (Menghubungkan ke Buku)
+Kolom: tanggal_pinjam, tanggal_kembali, status.
+LogPeminjaman:Primary Key (PK): id_log
+Kolom: aksi, id_peminjaman_baru, waktu_aksi.
+
+3. Implementasi Fitur Lanjutan (Advanced SQL)
+A. View: Daftar Peminjaman Aktif
+CREATE VIEW ViewPeminjamanAktif AS
+SELECT
+    P.id_peminjaman,
+    A.nama AS Nama_Anggota,
+    B.judul AS Judul_Buku,
+    P.tanggal_pinjam
+FROM Peminjaman P
+JOIN Anggota A ON P.id_anggota = A.id_anggota
+JOIN Buku B ON P.isbn = B.isbn
+WHERE P.status = 'Dipinjam';
+B. Stored Procedure: GetBukuDipinjamSQLDELIMITER //
+
+CREATE PROCEDURE GetBukuDipinjam()
+BEGIN
+    SELECT 
+        A.nama AS Nama_Peminjam, 
+        B.judul AS Judul_Buku, 
+        P.tanggal_pinjam
+    FROM Peminjaman P
+    JOIN Anggota A ON P.id_anggota = A.id_anggota
+    JOIN Buku B ON P.isbn = B.isbn
+    WHERE P.status = 'Dipinjam'
+    ORDER BY P.tanggal_pinjam DESC;
+END //
+
+DELIMITER ;
+C. Stored Function: HitungTotalPinjamanAnggotaSQLDELIMITER //
+
+CREATE FUNCTION HitungTotalPinjamanAnggota(id_anggota_param INT)
+RETURNS INT
+DETERMINISTIC
+BEGIN
+    DECLARE total_pinjaman INT;
+    SELECT COUNT(*) INTO total_pinjaman
+    FROM Peminjaman
+    WHERE id_anggota = id_anggota_param;
+    RETURN total_pinjaman;
+END //
+
+DELIMITER ;
+D. Trigger: AfterInsertPeminjamanSQLDELIMITER //
+
+CREATE TRIGGER AfterInsertPeminjaman
+AFTER INSERT ON Peminjaman
+FOR EACH ROW
+BEGIN
+    INSERT INTO LogPeminjaman (aksi, id_peminjaman_baru)
+    VALUES (CONCAT('INSERT Peminjaman ID: ', NEW.id_peminjaman), NEW.id_peminjaman);
+END //
+
+DELIMITER ;
